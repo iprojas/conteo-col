@@ -16,7 +16,7 @@ interface PdfDocumentProps {
   pageWidth: number;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll: (source: HTMLDivElement) => void;
-  onUnavailable: () => void;
+  onUnavailable?: () => void;
   onAvailable: (documentKey: "v1" | "v2") => void;
 }
 
@@ -37,7 +37,7 @@ function PdfDocument({ documentKey, label, description, url, pageWidth, scrollRe
         <Document
           file={url}
           loading={<p className="pdf-message">Cargando documento…</p>}
-          error={<p className="pdf-message error">Buscando otra acta disponible…</p>}
+          error={<p className="pdf-message error">No se pudo cargar este documento.</p>}
           onLoadSuccess={({ numPages }) => {
             setPages(numPages);
             onAvailable(documentKey);
@@ -106,11 +106,12 @@ export function SyncedPdfViewer({
   useEffect(() => {
     failed.current = false;
     availableDocuments.current.clear();
+    if (!onUnavailable) return;
     const timeout = window.setTimeout(() => {
       if (availableDocuments.current.size < 2) reportUnavailable();
     }, DOCUMENT_LOAD_TIMEOUT_MS);
     return () => window.clearTimeout(timeout);
-  }, [actId, reportUnavailable]);
+  }, [actId, onUnavailable, reportUnavailable]);
 
   const synchronize = useCallback((source: HTMLDivElement, target: HTMLDivElement | null) => {
     if (!target || synchronizing.current) return;

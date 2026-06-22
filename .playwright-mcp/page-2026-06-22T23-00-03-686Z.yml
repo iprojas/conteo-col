@@ -1,0 +1,11 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]: Preparando documentos…
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - strong [ref=e7]: ¿Las dos versiones coinciden?
+          - generic [ref=e8]: Revisa cifras, firmas, sellos y anotaciones.
+        - button "Marcar discrepancia" [ref=e9] [cursor=pointer]
+        - button "✓ Sin discrepancia" [ref=e10] [cursor=pointer]
+  - alert [ref=e11]

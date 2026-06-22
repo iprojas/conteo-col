@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { AUTO_SKIP_UNAVAILABLE_DOCUMENTS } from "@/lib/feature-flags";
 import type { ActRow } from "@/lib/types";
 
 const SyncedPdfViewer = dynamic(
@@ -77,7 +78,11 @@ export function ReviewWorkspace({ act }: { act: ActRow }) {
       {isSkipping ? (
         <div className="pdf-loading">Buscando otra acta disponible…</div>
       ) : (
-        <SyncedPdfViewer actId={act.id} onReachedEnd={() => setReachedEnd(true)} onUnavailable={skipUnavailable} />
+        <SyncedPdfViewer
+          actId={act.id}
+          onReachedEnd={() => setReachedEnd(true)}
+          onUnavailable={AUTO_SKIP_UNAVAILABLE_DOCUMENTS ? skipUnavailable : undefined}
+        />
       )}
 
       {!isSkipping && !reachedEnd && (
