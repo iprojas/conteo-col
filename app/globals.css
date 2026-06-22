@@ -117,14 +117,22 @@ body:has(.review-page) .site-header { display: none; }
 .comment-form > div { display: flex; gap: 8px; }
 .form-error { margin: 0; font-size: 12px; }
 .reviewed-message { display: flex; flex-direction: column; justify-content: center; gap: 6px; text-align: center; }
+.mobile-scroll-hint { display: none; }
 
 @media (max-width: 900px) {
   .summary-grid { grid-template-columns: repeat(2, 1fr); }
   .municipality-row { grid-template-columns: 1fr 100px 80px 20px; }
   .progress-wrap, .row-stat.muted, .row-stat.danger { display: none; }
-  .pdf-grid { height: auto; min-height: 0; grid-template-columns: 1fr; }
-  .pdf-panel { height: 70vh; }
-  .decision-bar { position: sticky; margin: 16px -20px -114px; }
+  .review-page { height: 100dvh; min-height: 0; padding: 6px; overflow: hidden; }
+  .pdf-grid { height: calc(100dvh - 12px); min-height: 0; grid-template-columns: 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .pdf-panel { height: auto; min-height: 0; border-radius: 7px; }
+  .pdf-label { padding: 7px 10px; }
+  .pdf-scroll .react-pdf__Document { padding: 10px; }
+  .pdf-page-frame { margin-bottom: 10px; }
+  .decision-bar { position: fixed; margin: 0; padding: 12px; transition: transform .22s ease, opacity .22s ease; }
+  .decision-bar.waiting { pointer-events: none; opacity: 0; transform: translateY(110%); }
+  .decision-bar.ready { opacity: 1; transform: translateY(0); }
+  .mobile-scroll-hint { position: fixed; z-index: 5; left: 50%; bottom: 14px; display: block; width: max-content; max-width: calc(100% - 28px); padding: 9px 13px; color: white; background: rgba(23,33,27,.86); border-radius: 20px; font-size: 11px; text-align: center; transform: translateX(-50%); pointer-events: none; }
   .decision-actions { grid-template-columns: 1fr 1fr; }
   .decision-actions > div { grid-column: 1 / -1; }
   .comment-form { grid-template-columns: 1fr; }
@@ -142,6 +150,13 @@ body:has(.review-page) .site-header { display: none; }
   .row-stat.muted { display: none; }
   .tabs { overflow-x: auto; }
   .pagination { gap: 10px; flex-direction: column; }
-  .decision-actions { grid-template-columns: 1fr; }
-  .decision-actions > div { grid-column: auto; }
+  .decision-bar { min-height: 0; }
+  .decision-actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .decision-actions > div { grid-column: 1 / -1; }
+  .decision-actions > div > span { display: none; }
+  .decision-actions button { min-height: 48px; padding: 9px; font-size: 12px; }
+  .comment-form { gap: 8px; }
+  .comment-form label { display: none; }
+  .comment-form textarea { height: 70px; }
+  .comment-form > div { display: grid; grid-template-columns: auto 1fr; }
 }

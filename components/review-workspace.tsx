@@ -23,6 +23,7 @@ export function ReviewWorkspace({ act }: { act: ActRow }) {
   const [showComment, setShowComment] = useState(false);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
+  const [reachedEnd, setReachedEnd] = useState(false);
   const [isPending, startTransition] = useTransition();
   useEffect(() => { reviewerId(); }, []);
 
@@ -50,9 +51,13 @@ export function ReviewWorkspace({ act }: { act: ActRow }) {
 
   return (
     <>
-      <SyncedPdfViewer actId={act.id} />
+      <SyncedPdfViewer actId={act.id} onReachedEnd={() => setReachedEnd(true)} />
 
-      <aside className="decision-bar">
+      {act.status === "pending" && !reachedEnd && (
+        <div className="mobile-scroll-hint">Desliza los documentos hasta el final para decidir</div>
+      )}
+
+      <aside className={`decision-bar ${act.status === "pending" && !reachedEnd ? "waiting" : "ready"}`}>
         {act.status !== "pending" ? (
           <div className="reviewed-message">
             <strong>Esta acta ya fue revisada.</strong>

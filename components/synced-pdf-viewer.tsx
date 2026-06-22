@@ -53,7 +53,7 @@ function PdfDocument({ label, description, url, pageWidth, scrollRef, onScroll }
   );
 }
 
-export function SyncedPdfViewer({ actId }: { actId: string }) {
+export function SyncedPdfViewer({ actId, onReachedEnd }: { actId: string; onReachedEnd?: () => void }) {
   const gridRef = useRef<HTMLElement>(null);
   const leftRef = useRef<HTMLDivElement>(null);
   const rightRef = useRef<HTMLDivElement>(null);
@@ -76,11 +76,14 @@ export function SyncedPdfViewer({ actId }: { actId: string }) {
 
   const synchronize = useCallback((source: HTMLDivElement, target: HTMLDivElement | null) => {
     if (!target || synchronizing.current) return;
+    const reachedEnd = source.scrollHeight > source.clientHeight
+      && source.scrollTop + source.clientHeight >= source.scrollHeight - 24;
+    if (reachedEnd) onReachedEnd?.();
     synchronizing.current = true;
     target.scrollTop = source.scrollTop;
     target.scrollLeft = source.scrollLeft;
     requestAnimationFrame(() => { synchronizing.current = false; });
-  }, []);
+  }, [onReachedEnd]);
 
   return (
     <section className="pdf-grid" ref={gridRef}>
