@@ -134,6 +134,7 @@ await insertBatches(pairs, 500, `
 `, "Actas");
 
 await sql`CREATE INDEX IF NOT EXISTS acts_municipality_status ON conteo.acts(municipality_id, status, id)`;
+await sql`CREATE INDEX IF NOT EXISTS acts_pending_municipality ON conteo.acts(municipality_id, id) WHERE status = 'pending'`;
 await sql`CREATE INDEX IF NOT EXISTS reviews_act ON conteo.reviews(act_id, created_at)`;
 
 console.log(`Municipios: ${municipalities.size}`);

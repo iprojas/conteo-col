@@ -22,7 +22,7 @@ export default async function Home() {
       <section className="landing-hero">
         <div className="landing-copy">
           <p className="eyebrow">CONTEO CÍVICO · COLOMBIA</p>
-          <h2>Defendamos cada voto. Súmate al conteo ciudadano.</h2>
+          <h1>Defendamos cada voto. Súmate al conteo ciudadano.</h1>
           <p>
             Compara las versiones públicas de las actas electorales y ayuda a
             identificar inconsistencias para defender cada voto. para su revisión.

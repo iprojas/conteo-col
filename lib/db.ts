@@ -108,15 +108,21 @@ export async function getAct(id: string): Promise<ActRow | undefined> {
 export async function getPriorityPendingActId(): Promise<string | undefined> {
   const sql = database();
   const rows = await sql`
-    SELECT id
-    FROM conteo.acts
-    WHERE status = 'pending'
-      AND municipality_id IN ('31001', '01001', '16001')
-    ORDER BY CASE municipality_id
-      WHEN '31001' THEN 1
-      WHEN '01001' THEN 2
-      WHEN '16001' THEN 3
-    END, id
+    WITH priority AS MATERIALIZED (
+      SELECT a.municipality_id, COUNT(*)::int AS pending_count
+      FROM conteo.acts a
+      JOIN conteo.municipalities m ON m.id = a.municipality_id
+      WHERE a.status = 'pending'
+      GROUP BY a.municipality_id, m.name
+      ORDER BY COUNT(*) DESC, m.name ASC
+      LIMIT 1
+    )
+    SELECT a.id
+    FROM conteo.acts a
+    JOIN priority p ON p.municipality_id = a.municipality_id
+    WHERE a.status = 'pending'
+    ORDER BY a.id
+    OFFSET (SELECT FLOOR(RANDOM() * pending_count)::int FROM priority)
     LIMIT 1
   ` as { id: string }[];
   return rows[0]?.id;
@@ -125,11 +131,18 @@ export async function getPriorityPendingActId(): Promise<string | undefined> {
 export async function getNextPendingActId(municipalityId: string): Promise<string | undefined> {
   const sql = database();
   const rows = await sql`
-    SELECT id
-    FROM conteo.acts
-    WHERE municipality_id = ${municipalityId}
-      AND status = 'pending'
-    ORDER BY id
+    WITH pending AS MATERIALIZED (
+      SELECT COUNT(*)::int AS pending_count
+      FROM conteo.acts
+      WHERE municipality_id = ${municipalityId}
+        AND status = 'pending'
+    )
+    SELECT a.id
+    FROM conteo.acts a
+    WHERE a.municipality_id = ${municipalityId}
+      AND a.status = 'pending'
+    ORDER BY a.id
+    OFFSET (SELECT FLOOR(RANDOM() * pending_count)::int FROM pending)
     LIMIT 1
   ` as { id: string }[];
   return rows[0]?.id;
