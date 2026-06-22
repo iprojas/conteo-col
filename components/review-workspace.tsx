@@ -74,7 +74,7 @@ export function ReviewWorkspace({ act }: { act: ActRow }) {
           <div className="decision-actions">
             <div><strong>¿Las dos versiones coinciden?</strong><span>Revisa cifras, firmas, sellos y anotaciones.</span>{error && <p className="form-error">{error}</p>}</div>
             <button className="outline-danger-button" onClick={() => setShowComment(true)} disabled={isPending}>Marcar discrepancia</button>
-            <button className="success-button" onClick={() => submit("no_discrepancy")} disabled={isPending}>{isPending ? "Guardando…" : "✓ Sin discrepancia / siguiente"}</button>
+            <button className="success-button" onClick={() => submit("no_discrepancy")} disabled={isPending}>{isPending ? "Guardando…" : "✓ Sin discrepancia"}</button>
           </div>
         )}
       </aside>
