@@ -64,10 +64,12 @@ function PdfDocument({ documentKey, label, description, url, pageWidth, scrollRe
 
 export function SyncedPdfViewer({
   actId,
+  documentRequestId,
   onReachedEnd,
   onUnavailable,
 }: {
   actId: string;
+  documentRequestId: string;
   onReachedEnd?: () => void;
   onUnavailable?: () => void;
 }) {
@@ -130,7 +132,7 @@ export function SyncedPdfViewer({
         documentKey="v1"
         label="Versión Transmisión"
         description=""
-        url={`/api/pdf/${actId}/v1`}
+        url={`/api/pdf/${actId}/v1?uuid=${documentRequestId}`}
         pageWidth={pageWidth}
         scrollRef={leftRef}
         onScroll={(source) => synchronize(source, rightRef.current)}

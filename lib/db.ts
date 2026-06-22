@@ -181,11 +181,14 @@ export async function listActs(
   return { acts: actRows.map(mapAct), total, totalPages: Math.max(1, Math.ceil(total / perPage)) };
 }
 
-export async function getPdfUrl(id: string, version: "v1" | "v2") {
+export async function getPdfSource(id: string, version: "v1" | "v2") {
   const sql = database();
   const column = version === "v1" ? "pdf_v1" : "pdf_v2";
-  const rows = await sql.query(`SELECT ${column} AS url FROM conteo.acts WHERE id = $1`, [id]) as { url: string }[];
-  return rows[0]?.url;
+  const rows = await sql.query(
+    `SELECT ${column} AS url, zone FROM conteo.acts WHERE id = $1`,
+    [id],
+  ) as { url: string; zone: string }[];
+  return rows[0];
 }
 
 export async function saveReview(input: {

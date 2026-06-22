@@ -19,7 +19,7 @@ function reviewerId() {
   return created;
 }
 
-export function ReviewWorkspace({ act }: { act: ActRow }) {
+export function ReviewWorkspace({ act, documentRequestId }: { act: ActRow; documentRequestId: string }) {
   const router = useRouter();
   const [showComment, setShowComment] = useState(false);
   const [comment, setComment] = useState("");
@@ -80,6 +80,7 @@ export function ReviewWorkspace({ act }: { act: ActRow }) {
       ) : (
         <SyncedPdfViewer
           actId={act.id}
+          documentRequestId={documentRequestId}
           onReachedEnd={() => setReachedEnd(true)}
           onUnavailable={AUTO_SKIP_UNAVAILABLE_DOCUMENTS ? skipUnavailable : undefined}
         />
