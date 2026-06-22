@@ -30,7 +30,7 @@ export default async function MunicipalityPage({
 
   return (
     <main className="page-shell narrow">
-      <Link className="back-link" href="/">← Todos los municipios</Link>
+      <Link className="back-link" href="/municipios">← Todos los municipios</Link>
       <section className="municipality-header">
         <div>
           <p className="eyebrow">DEPARTAMENTO {municipality.departmentCode}</p>
@@ -54,13 +54,13 @@ export default async function MunicipalityPage({
         </nav>
         <div className="acts-table-wrap">
           <table className="acts-table">
-            <thead><tr><th>Acta</th><th>Zona</th><th>Puesto</th><th>Mesa</th><th>Estado</th><th></th></tr></thead>
+            <thead><tr><th>Acta</th><th>Zona</th><th>Puesto</th><th>Estado</th><th></th></tr></thead>
             <tbody>
               {result.acts.map((act) => (
                 <tr key={act.id}>
-                  <td><code>{act.id}</code></td><td>{act.zone}</td><td>{act.station}</td><td>{act.tableNumber}</td>
+                  <td className="act-name"><strong>Mesa {act.tableNumber}</strong><code>{act.id}</code></td><td>{act.zone}</td><td>{act.station}</td>
                   <td><Status status={act.status} /></td>
-                  <td><Link className="small-button" href={`/revisar/${act.id}`}>{act.status === "pending" ? "Revisar" : "Ver"} →</Link></td>
+                  <td><Link className="small-button" href={`/revisar/${act.id}`}>Evaluar →</Link></td>
                 </tr>
               ))}
             </tbody>

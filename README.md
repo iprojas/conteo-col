@@ -40,6 +40,8 @@ La migración es incremental: cada PDF se descarga a un archivo temporal, se car
 ./scripts/migrate-v2-to-r2.sh --id 010100101011
 ./scripts/migrate-v2-to-r2.sh --limit 100
 ./scripts/migrate-v2-to-r2.sh --limit 1000 --jobs 8
+./scripts/migrate-v2-to-r2.sh --municipality 01001 --jobs 12
+./scripts/migrate-medellin-v2-to-r2.sh --jobs 12
 ./scripts/migrate-v2-to-r2.sh
 ```
 

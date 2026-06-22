@@ -8,12 +8,13 @@ BUCKET="${R2_BUCKET:-conteo-col}"
 API_BASE="https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/r2/buckets/$BUCKET/objects"
 LIMIT=""
 ACT_ID=""
+MUNICIPALITY_ID=""
 JOBS="${JOBS:-8}"
 BATCH_SIZE=100
 
 usage() {
   cat <<'EOF'
-Uso: scripts/migrate-v2-to-r2.sh [--id ID_ACTA] [--limit CANTIDAD] [--jobs CANTIDAD]
+Uso: scripts/migrate-v2-to-r2.sh [--id ID_ACTA] [--municipality CODIGO] [--limit CANTIDAD] [--jobs CANTIDAD]
 
 Descarga los PDF v2 pendientes, los sube a R2 y actualiza Neon.
 Procesa 8 documentos en paralelo por defecto y muestra progreso cada 100.
@@ -29,6 +30,9 @@ while (($#)); do
     --limit)
       [[ $# -ge 2 ]] || { echo "Falta el valor de --limit" >&2; exit 2; }
       LIMIT="$2"; shift 2 ;;
+    --municipality)
+      [[ $# -ge 2 ]] || { echo "Falta el valor de --municipality" >&2; exit 2; }
+      MUNICIPALITY_ID="$2"; shift 2 ;;
     --jobs)
       [[ $# -ge 2 ]] || { echo "Falta el valor de --jobs" >&2; exit 2; }
       JOBS="$2"; shift 2 ;;
@@ -40,6 +44,7 @@ while (($#)); do
 done
 
 [[ -z "$ACT_ID" || "$ACT_ID" =~ ^[0-9]+$ ]] || { echo "El ID debe ser numérico." >&2; exit 2; }
+[[ -z "$MUNICIPALITY_ID" || "$MUNICIPALITY_ID" =~ ^[0-9]{5}$ ]] || { echo "El código de municipio debe tener cinco dígitos." >&2; exit 2; }
 [[ -z "$LIMIT" || "$LIMIT" =~ ^[1-9][0-9]*$ ]] || { echo "El límite debe ser un entero positivo." >&2; exit 2; }
 [[ "$JOBS" =~ ^[1-9][0-9]*$ ]] || { echo "La cantidad de procesos debe ser un entero positivo." >&2; exit 2; }
 [[ -f "$ENV_FILE" ]] || { echo "No existe $ENV_FILE" >&2; exit 1; }
@@ -59,6 +64,9 @@ done
 where_clause="pdf_v2 <> '' AND pdf_v2 NOT LIKE 'r2://%'"
 if [[ -n "$ACT_ID" ]]; then
   where_clause+=" AND id = '$ACT_ID'"
+fi
+if [[ -n "$MUNICIPALITY_ID" ]]; then
+  where_clause+=" AND municipality_id = '$MUNICIPALITY_ID'"
 fi
 limit_clause=""
 [[ -n "$LIMIT" ]] && limit_clause="LIMIT $LIMIT"

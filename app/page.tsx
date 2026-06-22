@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { MunicipalityList } from "@/components/municipality-list";
 import { getMunicipalities } from "@/lib/db";
 
@@ -16,11 +17,53 @@ export default async function Home() {
   );
 
   return (
-    <main className="page-shell">
-      <section className="hero">
-        <p className="eyebrow">REVISIÓN CIUDADANA</p>
-        <h1>Compara dos versiones de cada acta</h1>
-        <p>Elige un municipio, revisa los documentos lado a lado y registra cualquier discrepancia.</p>
+    <main className="page-shell landing-page">
+
+      <section className="landing-hero">
+        <div className="landing-copy">
+          <p className="eyebrow">CONTEO CÍVICO · COLOMBIA</p>
+          <h2>Defendamos cada voto. Súmate al conteo ciudadano.</h2>
+          <p>
+            Compara las versiones públicas de las actas electorales y ayuda a
+            identificar inconsistencias para defender cada voto. para su revisión.
+          </p>
+          <div className="hero-actions">
+            <Link className="primary-button hero-cta" href="/municipios">
+              Empezar a evaluar actas →
+            </Link>
+            <a className="secondary-link" href="#avance">
+              Ver avance por municipio
+            </a>
+          </div>
+        </div>
+
+<div className="civic-card" aria-label="Qué reportar">
+  <p className="eyebrow">QUÉ REPORTAR</p>
+  <ol>
+    <li>
+      <span>1</span>
+      <div>
+        <strong>Tachones o incongruencias</strong>
+        <small>En las actas de las mesas.</small>
+      </div>
+    </li>
+    <li>
+      <span>2</span>
+      <div>
+        <strong>Menos de tres firmas</strong>
+        <small>Los formularios deben tener 3 o mas firmas</small>
+      </div>
+    </li>
+    <li>
+      <span>3</span>
+      <div>
+        <strong>Correcciones sin explicación</strong>
+        <small>Que no estén justificadas en observaciones.</small>
+      </div>
+    </li>
+  </ol>
+</div>
+
       </section>
 
       <section className="summary-grid" aria-label="Resumen general">
@@ -30,7 +73,16 @@ export default async function Home() {
         <div className="summary-card alert"><strong>{totals.discrepancies.toLocaleString("es-CO")}</strong><span>Con discrepancia</span></div>
       </section>
 
-      <MunicipalityList municipalities={municipalities} />
+      <section className="progress-section" id="avance">
+        <div className="section-intro">
+          <div>
+            <p className="eyebrow">AVANCE CIUDADANO</p>
+            <h2>Revisión por municipio</h2>
+          </div>
+          <p>Consulta el avance y entra a un municipio para evaluar sus actas pendientes.</p>
+        </div>
+        <MunicipalityList municipalities={municipalities} title="Municipios" />
+      </section>
     </main>
   );
 }

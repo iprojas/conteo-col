@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { MunicipalitySummary } from "@/lib/types";
 
-export function MunicipalityList({ municipalities }: { municipalities: MunicipalitySummary[] }) {
+export function MunicipalityList({
+  municipalities,
+  title = "Municipios",
+}: {
+  municipalities: MunicipalitySummary[];
+  title?: string;
+}) {
   const [query, setQuery] = useState("");
   const normalized = query.trim().toLocaleLowerCase("es");
   const visible = useMemo(
@@ -17,7 +23,7 @@ export function MunicipalityList({ municipalities }: { municipalities: Municipal
   return (
     <section className="panel">
       <div className="panel-heading">
-        <div><h2>Municipios</h2><p>{visible.length} resultados · ordenados por actas pendientes</p></div>
+        <div><h2>{title}</h2><p>{visible.length} resultados · ordenados por actas pendientes</p></div>
         <label className="search-field">
           <span className="sr-only">Buscar municipio</span>
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar municipio o código…" />
