@@ -16,7 +16,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <span className="brand-mark">✓</span>
             <span>Revisión de actas</span>
           </Link>
-          <span className="header-note">Segunda vuelta · Colombia 2026</span>
+          <div className="header-actions">
+            <span className="header-note">Segunda vuelta · Colombia 2026</span>
+            <Link className="header-cta" href="/revisar">Evaluar un acta →</Link>
+          </div>
         </header>
         {children}
       </body>

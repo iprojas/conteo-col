@@ -10,7 +10,7 @@ LIMIT=""
 ACT_ID=""
 MUNICIPALITY_ID=""
 JOBS="${JOBS:-8}"
-BATCH_SIZE=100
+BATCH_SIZE=400
 
 usage() {
   cat <<'EOF'

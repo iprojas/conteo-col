@@ -105,6 +105,23 @@ export async function getAct(id: string): Promise<ActRow | undefined> {
   return rows[0] ? mapAct(rows[0]) : undefined;
 }
 
+export async function getPriorityPendingActId(): Promise<string | undefined> {
+  const sql = database();
+  const rows = await sql`
+    SELECT id
+    FROM conteo.acts
+    WHERE status = 'pending'
+      AND municipality_id IN ('31001', '01001', '16001')
+    ORDER BY CASE municipality_id
+      WHEN '31001' THEN 1
+      WHEN '01001' THEN 2
+      WHEN '16001' THEN 3
+    END, id
+    LIMIT 1
+  ` as { id: string }[];
+  return rows[0]?.id;
+}
+
 export async function listActs(
   municipalityId: string,
   filter: "pending" | "reviewed" | "discrepancy",

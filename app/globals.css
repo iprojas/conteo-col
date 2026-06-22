@@ -25,7 +25,10 @@ button:disabled { cursor: wait; opacity: .62; }
 .site-header { height: 64px; padding: 0 max(24px, calc((100vw - 1240px) / 2)); display: flex; align-items: center; justify-content: space-between; background: var(--paper); border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 750; letter-spacing: -.01em; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: white; background: var(--green); }
+.header-actions { display: flex; align-items: center; gap: 18px; }
 .header-note { color: var(--muted); font-size: 13px; }
+.header-cta { padding: 9px 13px; color: white; background: var(--green); border-radius: 7px; font-size: 13px; font-weight: 750; }
+.header-cta:hover { background: var(--green-dark); }
 .page-shell { width: min(1240px, calc(100% - 40px)); margin: 0 auto; padding: 54px 0 80px; }
 .page-shell.narrow { width: min(1120px, calc(100% - 40px)); }
 .hero { max-width: 720px; margin-bottom: 32px; }
@@ -170,6 +173,10 @@ body:has(.review-page) .site-header { display: none; }
 
 @media (max-width: 600px) {
   .header-note { display: none; }
+  .site-header { padding: 0 12px; }
+  .brand { gap: 7px; font-size: 14px; }
+  .brand-mark { width: 28px; height: 28px; }
+  .header-cta { padding: 9px 11px; font-size: 12px; }
   .page-shell { width: min(100% - 24px, 1240px); padding-top: 32px; }
   .landing-page { padding-top: 12px; }
   .landing-hero { padding: 30px 22px; gap: 30px; border-radius: 16px; }
