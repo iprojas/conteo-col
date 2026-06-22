@@ -122,6 +122,19 @@ export async function getPriorityPendingActId(): Promise<string | undefined> {
   return rows[0]?.id;
 }
 
+export async function getNextPendingActId(municipalityId: string): Promise<string | undefined> {
+  const sql = database();
+  const rows = await sql`
+    SELECT id
+    FROM conteo.acts
+    WHERE municipality_id = ${municipalityId}
+      AND status = 'pending'
+    ORDER BY id
+    LIMIT 1
+  ` as { id: string }[];
+  return rows[0]?.id;
+}
+
 export async function listActs(
   municipalityId: string,
   filter: "pending" | "reviewed" | "discrepancy",
@@ -158,17 +171,29 @@ export async function saveReview(input: {
 }) {
   const sql = database();
   const rows = await sql`
-    WITH updated AS (
-      UPDATE conteo.acts
-      SET status = ${input.result}, reviewer_id = ${input.reviewerId},
-        comment = ${input.comment}, reviewed_at = NOW()
-      WHERE id = ${input.actId} AND status = 'pending'
-      RETURNING municipality_id
-    ), recorded AS (
+    WITH recorded AS (
       INSERT INTO conteo.reviews (act_id, reviewer_id, result, comment, created_at)
-      SELECT ${input.actId}, ${input.reviewerId}, ${input.result}, ${input.comment}, NOW()
-      FROM updated
+      SELECT id, ${input.reviewerId}, ${input.result}, ${input.comment}, NOW()
+      FROM conteo.acts
+      WHERE id = ${input.actId}
       RETURNING id
+    ), updated AS (
+      UPDATE conteo.acts
+      SET status = CASE
+          WHEN status = 'discrepancy' OR ${input.result} = 'discrepancy' THEN 'discrepancy'
+          ELSE 'no_discrepancy'
+        END,
+        reviewer_id = CASE
+          WHEN status = 'discrepancy' AND ${input.result} != 'discrepancy' THEN reviewer_id
+          ELSE ${input.reviewerId}
+        END,
+        comment = CASE
+          WHEN status = 'discrepancy' AND ${input.result} != 'discrepancy' THEN comment
+          ELSE ${input.comment}
+        END,
+        reviewed_at = NOW()
+      WHERE id = ${input.actId}
+      RETURNING municipality_id
     )
     SELECT u.municipality_id,
       (SELECT id FROM conteo.acts
@@ -176,6 +201,7 @@ export async function saveReview(input: {
          AND status = 'pending' AND id != ${input.actId}
        ORDER BY id LIMIT 1) AS next_act_id
     FROM updated u
+    CROSS JOIN recorded r
   ` as { municipality_id: string; next_act_id: string | null }[];
   const saved = rows[0];
   if (!saved) return { saved: false as const, nextActId: null };

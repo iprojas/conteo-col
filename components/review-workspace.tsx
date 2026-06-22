@@ -44,7 +44,7 @@ export function ReviewWorkspace({ act }: { act: ActRow }) {
         setError(payload.error ?? "No se pudo guardar la revisión.");
         return;
       }
-      router.push(payload.nextActId ? `/revisar/${payload.nextActId}` : `/municipios/${act.municipalityId}`);
+      router.push(payload.nextActId ? `/revisar/${payload.nextActId}` : "/revisar");
       router.refresh();
     });
   }
@@ -53,17 +53,12 @@ export function ReviewWorkspace({ act }: { act: ActRow }) {
     <>
       <SyncedPdfViewer actId={act.id} onReachedEnd={() => setReachedEnd(true)} />
 
-      {act.status === "pending" && !reachedEnd && (
+      {!reachedEnd && (
         <div className="mobile-scroll-hint">Desliza los documentos hasta el final para decidir</div>
       )}
 
-      <aside className={`decision-bar ${act.status === "pending" && !reachedEnd ? "waiting" : "ready"}`}>
-        {act.status !== "pending" ? (
-          <div className="reviewed-message">
-            <strong>Esta acta ya fue revisada.</strong>
-            <span>{act.status === "discrepancy" ? `Discrepancia: ${act.comment}` : "No se encontraron discrepancias."}</span>
-          </div>
-        ) : showComment ? (
+      <aside className={`decision-bar ${!reachedEnd ? "waiting" : "ready"}`}>
+        {showComment ? (
           <div className="comment-form">
             <label htmlFor="comment">Describe la discrepancia <span>*</span></label>
             <textarea id="comment" autoFocus value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Indica qué cambia entre ambas versiones…" />

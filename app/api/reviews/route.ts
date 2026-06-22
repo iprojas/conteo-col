@@ -15,6 +15,6 @@ export async function POST(request: Request) {
   }
   if (result === "discrepancy" && !comment) return NextResponse.json({ error: "El comentario es obligatorio." }, { status: 400 });
   const saved = await saveReview({ actId: input.actId, reviewerId: input.reviewerId, result: result as "no_discrepancy" | "discrepancy", comment });
-  if (!saved.saved) return NextResponse.json({ error: "Otra persona ya revisó esta acta. Vuelve al municipio para continuar." }, { status: 409 });
+  if (!saved.saved) return NextResponse.json({ error: "No se encontró esta acta." }, { status: 404 });
   return NextResponse.json(saved);
 }

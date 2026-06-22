@@ -33,7 +33,7 @@ export function MunicipalityList({
         {visible.map((item) => {
           const progress = item.total ? Math.round((item.reviewed / item.total) * 100) : 0;
           return (
-            <Link className="municipality-row" href={`/municipios/${item.id}`} key={item.id}>
+            <Link className="municipality-row" href={`/municipios/${item.id}/revisar`} key={item.id}>
               <div className="municipality-name">
                 <strong>{item.name}</strong>
                 <span>Depto. {item.departmentCode} · Código {item.id}</span>

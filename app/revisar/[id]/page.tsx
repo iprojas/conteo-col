@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ReviewWorkspace } from "@/components/review-workspace";
-import { getAct } from "@/lib/db";
+import { getAct, getNextPendingActId, getPriorityPendingActId } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +8,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const act = await getAct(id);
   if (!act) notFound();
+  if (act.status !== "pending") {
+    const nextActId = await getNextPendingActId(act.municipalityId) ?? await getPriorityPendingActId();
+    redirect(nextActId ? `/revisar/${nextActId}` : "/municipios");
+  }
 
   return (
     <main className="review-page">
