@@ -4,6 +4,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { MunicipalitySummary } from "@/lib/types";
 
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es");
+}
+
 export function MunicipalityList({
   municipalities,
   title = "Municipios",
@@ -12,10 +19,10 @@ export function MunicipalityList({
   title?: string;
 }) {
   const [query, setQuery] = useState("");
-  const normalized = query.trim().toLocaleLowerCase("es");
+  const normalized = normalizeSearch(query.trim());
   const visible = useMemo(
     () => municipalities.filter((item) =>
-      item.name.toLocaleLowerCase("es").includes(normalized) || item.id.includes(normalized),
+      normalizeSearch(item.name).includes(normalized) || item.id.includes(normalized),
     ),
     [municipalities, normalized],
   );

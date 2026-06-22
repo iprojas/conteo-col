@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MunicipalityList } from "@/components/municipality-list";
 import { getMunicipalities } from "@/lib/db";
 
@@ -25,7 +26,7 @@ export default async function Home() {
           <h1>Defendamos cada voto. Súmate al conteo ciudadano.</h1>
           <p>
             Compara las versiones públicas de las actas electorales y ayuda a
-            identificar inconsistencias para defender cada voto. para su revisión.
+            identificar inconsistencias para defender cada voto.
           </p>
           <div className="hero-actions">
             <Link className="primary-button hero-cta" href="/municipios">
@@ -37,33 +38,30 @@ export default async function Home() {
           </div>
         </div>
 
-<div className="civic-card" aria-label="Qué reportar">
-  <p className="eyebrow">QUÉ REPORTAR</p>
-  <ol>
-    <li>
-      <span>1</span>
-      <div>
-        <strong>Tachones o incongruencias</strong>
-        <small>En las actas de las mesas.</small>
-      </div>
-    </li>
-    <li>
-      <span>2</span>
-      <div>
-        <strong>Menos de tres firmas</strong>
-        <small>Los formularios deben tener 3 o mas firmas</small>
-      </div>
-    </li>
-    <li>
-      <span>3</span>
-      <div>
-        <strong>Correcciones sin explicación</strong>
-        <small>Que no estén justificadas en observaciones.</small>
-      </div>
-    </li>
-  </ol>
-</div>
+        <div className="hero-art">
+          <Image
+            src="/images/conteo-civico-clay.webp"
+            alt="Personas revisando colaborativamente documentos electorales"
+            fill
+            priority
+            sizes="(max-width: 900px) 100vw, 46vw"
+          />
+          <span className="hero-art-badge">Revisión ciudadana</span>
+        </div>
 
+      </section>
+
+      <section className="civic-card" aria-labelledby="reportar-title">
+        <div>
+          <p className="eyebrow">GUÍA DE REVISIÓN</p>
+          <h2 id="reportar-title">¿Qué debes reportar?</h2>
+          <p>Busca señales claras en ambas versiones del formulario.</p>
+        </div>
+        <ol>
+          <li><span>1</span><div><strong>Tachones o incongruencias</strong><small>En las actas de las mesas.</small></div></li>
+          <li><span>2</span><div><strong>Menos de tres firmas</strong><small>Los formularios deben tener tres o más firmas.</small></div></li>
+          <li><span>3</span><div><strong>Correcciones sin explicación</strong><small>Que no estén justificadas en observaciones.</small></div></li>
+        </ol>
       </section>
 
       <section className="summary-grid" aria-label="Resumen general">

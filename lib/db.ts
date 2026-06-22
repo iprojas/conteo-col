@@ -105,14 +105,17 @@ export async function getAct(id: string): Promise<ActRow | undefined> {
   return rows[0] ? mapAct(rows[0]) : undefined;
 }
 
-export async function getPriorityPendingActId(): Promise<string | undefined> {
+export async function getPriorityPendingActId(excludedActIds: string[] = []): Promise<string | undefined> {
   const sql = database();
-  const rows = await sql`
+  const rows = await sql.query(`
     WITH priority AS MATERIALIZED (
       SELECT a.municipality_id, COUNT(*)::int AS pending_count
       FROM conteo.acts a
       JOIN conteo.municipalities m ON m.id = a.municipality_id
       WHERE a.status = 'pending'
+        AND a.pdf_v1 IS NOT NULL AND BTRIM(a.pdf_v1) != ''
+        AND a.pdf_v2 IS NOT NULL AND BTRIM(a.pdf_v2) != ''
+        AND NOT (a.id = ANY($1::text[]))
       GROUP BY a.municipality_id, m.name
       ORDER BY COUNT(*) DESC, m.name ASC
       LIMIT 1
@@ -121,30 +124,39 @@ export async function getPriorityPendingActId(): Promise<string | undefined> {
     FROM conteo.acts a
     JOIN priority p ON p.municipality_id = a.municipality_id
     WHERE a.status = 'pending'
+      AND a.pdf_v1 IS NOT NULL AND BTRIM(a.pdf_v1) != ''
+      AND a.pdf_v2 IS NOT NULL AND BTRIM(a.pdf_v2) != ''
+      AND NOT (a.id = ANY($1::text[]))
     ORDER BY a.id
     OFFSET (SELECT FLOOR(RANDOM() * pending_count)::int FROM priority)
     LIMIT 1
-  ` as { id: string }[];
+  `, [excludedActIds]) as { id: string }[];
   return rows[0]?.id;
 }
 
-export async function getNextPendingActId(municipalityId: string): Promise<string | undefined> {
+export async function getNextPendingActId(municipalityId: string, excludedActIds: string[] = []): Promise<string | undefined> {
   const sql = database();
-  const rows = await sql`
+  const rows = await sql.query(`
     WITH pending AS MATERIALIZED (
       SELECT COUNT(*)::int AS pending_count
       FROM conteo.acts
-      WHERE municipality_id = ${municipalityId}
+      WHERE municipality_id = $1
         AND status = 'pending'
+        AND pdf_v1 IS NOT NULL AND BTRIM(pdf_v1) != ''
+        AND pdf_v2 IS NOT NULL AND BTRIM(pdf_v2) != ''
+        AND NOT (id = ANY($2::text[]))
     )
     SELECT a.id
     FROM conteo.acts a
-    WHERE a.municipality_id = ${municipalityId}
+    WHERE a.municipality_id = $1
       AND a.status = 'pending'
+      AND a.pdf_v1 IS NOT NULL AND BTRIM(a.pdf_v1) != ''
+      AND a.pdf_v2 IS NOT NULL AND BTRIM(a.pdf_v2) != ''
+      AND NOT (a.id = ANY($2::text[]))
     ORDER BY a.id
     OFFSET (SELECT FLOOR(RANDOM() * pending_count)::int FROM pending)
     LIMIT 1
-  ` as { id: string }[];
+  `, [municipalityId, excludedActIds]) as { id: string }[];
   return rows[0]?.id;
 }
 

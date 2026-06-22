@@ -13,15 +13,30 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <header className="site-header">
           <Link href="/" className="brand" aria-label="Ir al inicio">
-            <span className="brand-mark">✓</span>
-            <span>Revisión de actas</span>
+            <span className="brand-mark" aria-hidden>✓</span>
+            <span>Conteo Cívico</span>
           </Link>
+          <nav className="main-nav" aria-label="Navegación principal">
+            <Link href="/">Inicio</Link>
+            <Link href="/municipios">Municipios</Link>
+            <Link href="/#avance">Avance</Link>
+          </nav>
           <div className="header-actions">
             <span className="header-note">Segunda vuelta · Colombia 2026</span>
-            <Link className="header-cta" href="/revisar">Evaluar un acta →</Link>
+            <Link className="header-cta" href="/revisar">Evaluar un acta <span aria-hidden>→</span></Link>
           </div>
         </header>
         {children}
+        <footer className="site-footer">
+          <div>
+            <Link href="/" className="brand"><span className="brand-mark" aria-hidden>✓</span><span>Conteo Cívico</span></Link>
+            <p>Una herramienta ciudadana para comparar actas electorales públicas.</p>
+          </div>
+          <nav aria-label="Navegación del pie">
+            <Link href="/municipios">Municipios</Link>
+            <Link href="/revisar">Evaluar un acta</Link>
+          </nav>
+        </footer>
       </body>
     </html>
   );

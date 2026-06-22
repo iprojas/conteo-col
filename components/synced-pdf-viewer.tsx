@@ -9,17 +9,21 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 interface PdfDocumentProps {
+  documentKey: "v1" | "v2";
   label: string;
   description: string;
   url: string;
   pageWidth: number;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll: (source: HTMLDivElement) => void;
+  onUnavailable: () => void;
+  onAvailable: (documentKey: "v1" | "v2") => void;
 }
 
 const CANONICAL_PAGE_RATIO = 2610 / 856;
+const DOCUMENT_LOAD_TIMEOUT_MS = 20_000;
 
-function PdfDocument({ label, description, url, pageWidth, scrollRef, onScroll }: PdfDocumentProps) {
+function PdfDocument({ documentKey, label, description, url, pageWidth, scrollRef, onScroll, onUnavailable, onAvailable }: PdfDocumentProps) {
   const [pages, setPages] = useState(0);
   const pageHeight = Math.round(pageWidth * CANONICAL_PAGE_RATIO);
 
@@ -33,8 +37,12 @@ function PdfDocument({ label, description, url, pageWidth, scrollRef, onScroll }
         <Document
           file={url}
           loading={<p className="pdf-message">Cargando documento…</p>}
-          error={<p className="pdf-message error">No se pudo cargar el documento.</p>}
-          onLoadSuccess={({ numPages }) => setPages(numPages)}
+          error={<p className="pdf-message error">Buscando otra acta disponible…</p>}
+          onLoadSuccess={({ numPages }) => {
+            setPages(numPages);
+            onAvailable(documentKey);
+          }}
+          onLoadError={onUnavailable}
         >
           {pageWidth > 0 && Array.from({ length: pages }, (_, index) => (
             <div className="pdf-page-frame" style={{ width: pageWidth, height: pageHeight }} key={index + 1}>
@@ -44,6 +52,7 @@ function PdfDocument({ label, description, url, pageWidth, scrollRef, onScroll }
                 renderAnnotationLayer={false}
                 renderTextLayer={false}
                 loading={<p className="pdf-message">Renderizando página {index + 1}…</p>}
+                onRenderError={onUnavailable}
               />
             </div>
           ))}
@@ -53,11 +62,21 @@ function PdfDocument({ label, description, url, pageWidth, scrollRef, onScroll }
   );
 }
 
-export function SyncedPdfViewer({ actId, onReachedEnd }: { actId: string; onReachedEnd?: () => void }) {
+export function SyncedPdfViewer({
+  actId,
+  onReachedEnd,
+  onUnavailable,
+}: {
+  actId: string;
+  onReachedEnd?: () => void;
+  onUnavailable?: () => void;
+}) {
   const gridRef = useRef<HTMLElement>(null);
   const leftRef = useRef<HTMLDivElement>(null);
   const rightRef = useRef<HTMLDivElement>(null);
   const synchronizing = useRef(false);
+  const failed = useRef(false);
+  const availableDocuments = useRef(new Set<"v1" | "v2">());
   const [pageWidth, setPageWidth] = useState(0);
 
   useEffect(() => {
@@ -74,6 +93,25 @@ export function SyncedPdfViewer({ actId, onReachedEnd }: { actId: string; onReac
     return () => observer.disconnect();
   }, []);
 
+  const reportUnavailable = useCallback(() => {
+    if (failed.current) return;
+    failed.current = true;
+    onUnavailable?.();
+  }, [onUnavailable]);
+
+  const reportAvailable = useCallback((documentKey: "v1" | "v2") => {
+    availableDocuments.current.add(documentKey);
+  }, []);
+
+  useEffect(() => {
+    failed.current = false;
+    availableDocuments.current.clear();
+    const timeout = window.setTimeout(() => {
+      if (availableDocuments.current.size < 2) reportUnavailable();
+    }, DOCUMENT_LOAD_TIMEOUT_MS);
+    return () => window.clearTimeout(timeout);
+  }, [actId, reportUnavailable]);
+
   const synchronize = useCallback((source: HTMLDivElement, target: HTMLDivElement | null) => {
     if (!target || synchronizing.current) return;
     const reachedEnd = source.scrollHeight > source.clientHeight
@@ -88,20 +126,26 @@ export function SyncedPdfViewer({ actId, onReachedEnd }: { actId: string; onReac
   return (
     <section className="pdf-grid" ref={gridRef}>
       <PdfDocument
+        documentKey="v1"
         label="Versión Transmisión"
         description=""
         url={`/api/pdf/${actId}/v1`}
         pageWidth={pageWidth}
         scrollRef={leftRef}
         onScroll={(source) => synchronize(source, rightRef.current)}
+        onUnavailable={reportUnavailable}
+        onAvailable={reportAvailable}
       />
       <PdfDocument
+        documentKey="v2"
         label="Versión Claveros"
         description=""
         url={`/api/pdf/${actId}/v2`}
         pageWidth={pageWidth}
         scrollRef={rightRef}
         onScroll={(source) => synchronize(source, leftRef.current)}
+        onUnavailable={reportUnavailable}
+        onAvailable={reportAvailable}
       />
     </section>
   );
