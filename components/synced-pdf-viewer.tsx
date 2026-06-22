@@ -88,16 +88,16 @@ export function SyncedPdfViewer({ actId, onReachedEnd }: { actId: string; onReac
   return (
     <section className="pdf-grid" ref={gridRef}>
       <PdfDocument
-        label="Versión 1"
-        description="Documento a color"
+        label="Versión Transmisión"
+        description=""
         url={`/api/pdf/${actId}/v1`}
         pageWidth={pageWidth}
         scrollRef={leftRef}
         onScroll={(source) => synchronize(source, rightRef.current)}
       />
       <PdfDocument
-        label="Versión 2"
-        description="Documento para comparar"
+        label="Versión Claveros"
+        description=""
         url={`/api/pdf/${actId}/v2`}
         pageWidth={pageWidth}
         scrollRef={rightRef}
