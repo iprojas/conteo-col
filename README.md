@@ -31,3 +31,16 @@ npm start
 ```
 
 Los PDF se sirven mediante `/api/pdf/:id/:version` porque las fuentes originales impiden mostrarlos directamente dentro de un iframe.
+
+## Migrar PDF v2 a R2
+
+La migración es incremental: cada PDF se descarga a un archivo temporal, se carga en `V2/` y se elimina localmente antes de continuar.
+
+```bash
+./scripts/migrate-v2-to-r2.sh --id 010100101011
+./scripts/migrate-v2-to-r2.sh --limit 100
+./scripts/migrate-v2-to-r2.sh --limit 1000 --jobs 8
+./scripts/migrate-v2-to-r2.sh
+```
+
+El script usa `DATABASE_URL` y `CLOUDFLARE_API_TOKEN` desde `.env.local`. Procesa ocho documentos en paralelo por defecto, acepta `--jobs` para ajustar la concurrencia y reporta tiempo/velocidad cada 100 documentos. La aplicación usa además `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY` para generar descargas privadas temporales.

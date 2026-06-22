@@ -130,8 +130,7 @@ await insertBatches(pairs, 500, `
     zone = EXCLUDED.zone,
     station = EXCLUDED.station,
     table_number = EXCLUDED.table_number,
-    pdf_v1 = EXCLUDED.pdf_v1,
-    pdf_v2 = EXCLUDED.pdf_v2
+    pdf_v1 = EXCLUDED.pdf_v1
 `, "Actas");
 
 await sql`CREATE INDEX IF NOT EXISTS acts_municipality_status ON conteo.acts(municipality_id, status, id)`;
