@@ -51,7 +51,6 @@ export default function OpenGraphImage() {
             flexDirection: "column",
             justifyContent: "space-between",
             width: 860,
-            zIndex: 1,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
@@ -69,7 +68,7 @@ export default function OpenGraphImage() {
                 fontWeight: 700,
               }}
             >
-              ✓
+              C
             </div>
             <div style={{ display: "flex", fontSize: 35, fontWeight: 700 }}>{SITE_NAME}</div>
           </div>
