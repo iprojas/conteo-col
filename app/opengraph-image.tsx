@@ -86,7 +86,7 @@ export default function OpenGraphImage() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 16, color: "#2f785f", fontSize: 25, fontWeight: 700 }}>
-            conteocol.com <span style={{ display: "flex" }}>→</span>
+            conteocol.lat <span style={{ display: "flex" }}>→</span>
           </div>
         </div>
       </div>

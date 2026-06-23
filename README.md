@@ -34,17 +34,18 @@ Los PDF se sirven mediante `/api/pdf/:id/:version` porque las fuentes originales
 
 ## Dominio y despliegue
 
-El dominio canónico de producción es `https://www.conteocol.com`. `SITE_URL` permite
+El dominio canónico de producción es `https://conteocol.lat`. `SITE_URL` permite
 declararlo explícitamente en el entorno de despliegue y usa ese dominio como valor
 predeterminado. Las visitas al dominio anterior `conteo-col.vercel.app` se
-redirigen permanentemente al dominio canónico conservando la ruta. Vercel redirige
-el dominio raíz `conteocol.com` a `www`.
+redirigen permanentemente al dominio canónico conservando la ruta. Las variantes
+`www.conteocol.lat`, `conteocol.com` y `www.conteocol.com` también redirigen al
+dominio canónico.
 
 El dominio debe apuntar por DNS al proveedor donde se ejecute Next.js. Si la
-aplicación continúa en Vercel, agrega `conteocol.com` y `www.conteocol.com` al
-proyecto y configura los registros DNS indicados por Vercel. En otro proveedor,
-ejecuta `npm run build` y `npm start` con Node.js 22 o superior y configura todas
-las variables de `.env.example`.
+aplicación continúa en Vercel, agrega `conteocol.com`, `www.conteocol.com`,
+`conteocol.lat` y `www.conteocol.lat` al proyecto y configura los registros DNS
+indicados por Vercel. En otro proveedor, ejecuta `npm run build` y `npm start` con
+Node.js 22 o superior y configura todas las variables de `.env.example`.
 
 Los PDF almacenados en R2 se transmiten mediante `/api/pdf/:id/:version`, por lo
 que el navegador no depende de la política CORS del bucket ni expone URLs

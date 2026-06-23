@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = "https://www.conteocol.com";
+const DEFAULT_SITE_URL = "https://conteocol.lat";
 
 export const SITE_NAME = "Conteo Cívico";
 export const SITE_TITLE = "Conteo Cívico | Revisión ciudadana de actas";
