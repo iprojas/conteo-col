@@ -111,13 +111,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const pdf = await getPdfSource(id, version);
   if (!pdf?.url) return new Response("Acta no encontrada", { status: 404 });
 
-  if (version === "v1") return proxyTransmissionPdf(request, id, pdf.url, pdf.zone);
-
   if (pdf.url.startsWith("r2://")) {
     const reference = new URL(pdf.url);
     const bucket = process.env.R2_BUCKET ?? "conteo-col";
     const key = decodeURIComponent(reference.pathname.replace(/^\//, ""));
-    if (reference.hostname !== bucket || !key.startsWith("V2/")) {
+    const expectedPrefix = version === "v1" ? "V1/" : "V2/";
+    if (reference.hostname !== bucket || !key.startsWith(expectedPrefix)) {
       return new Response("Referencia R2 inválida", { status: 400 });
     }
     try {
@@ -127,7 +126,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           Bucket: bucket,
           Key: key,
           ResponseContentType: "application/pdf",
-          ResponseContentDisposition: `inline; filename="${id}-v2.pdf"`,
+          ResponseContentDisposition: `inline; filename="${id}-${version}.pdf"`,
         }),
         { expiresIn: 900 },
       );
@@ -139,6 +138,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return new Response("No se pudo autorizar el PDF", { status: 502 });
     }
   }
+
+  if (version === "v1") return proxyTransmissionPdf(request, id, pdf.url, pdf.zone);
 
   const source = new URL(pdf.url);
   if (source.hostname !== "escrutinios2vueltapresidente2026.registraduria.gov.co") {

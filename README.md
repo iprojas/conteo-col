@@ -32,9 +32,21 @@ npm start
 
 Los PDF se sirven mediante `/api/pdf/:id/:version` porque las fuentes originales impiden mostrarlos directamente dentro de un iframe.
 
-## Migrar PDF v2 a R2
+## Migrar PDF a R2
 
-La migración es incremental: cada PDF se descarga a un archivo temporal, se carga en `V2/` y se elimina localmente antes de continuar.
+Las migraciones son incrementales: cada PDF se descarga a un archivo temporal, se valida, se carga en `V1/` o `V2/` y se elimina localmente antes de continuar.
+
+Para transmisión (V1), el script corrige el segmento de zona y agrega un `uuid` temporal antes de descargar:
+
+```bash
+./scripts/migrate-v1-to-r2.sh --id 010100117096
+./scripts/migrate-v1-to-r2.sh --limit 100
+./scripts/migrate-v1-to-r2.sh --limit 1000 --jobs 8
+./scripts/migrate-v1-to-r2.sh --municipality 01001 --jobs 12
+./scripts/migrate-v1-to-r2.sh
+```
+
+Para claveros (V2):
 
 ```bash
 ./scripts/migrate-v2-to-r2.sh --id 010100101011
