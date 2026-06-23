@@ -32,6 +32,25 @@ npm start
 
 Los PDF se sirven mediante `/api/pdf/:id/:version` porque las fuentes originales impiden mostrarlos directamente dentro de un iframe.
 
+## Dominio y despliegue
+
+El dominio canónico de producción es `https://conteocol.com`. `SITE_URL` permite
+declararlo explícitamente en el entorno de despliegue y usa ese dominio como valor
+predeterminado. Las visitas al dominio anterior `conteo-col.vercel.app` y a
+`www.conteocol.com` se redirigen permanentemente al dominio canónico conservando
+la ruta.
+
+El dominio debe apuntar por DNS al proveedor donde se ejecute Next.js. Si la
+aplicación continúa en Vercel, agrega `conteocol.com` y `www.conteocol.com` al
+proyecto y configura los registros DNS indicados por Vercel. En otro proveedor,
+ejecuta `npm run build` y `npm start` con Node.js 22 o superior y configura todas
+las variables de `.env.example`.
+
+Los PDF almacenados en R2 se abren mediante URLs temporales desde el navegador.
+La política CORS del bucket debe permitir `GET` y `HEAD` desde
+`https://conteocol.com` (y desde `http://localhost:3000` para desarrollo). Este
+ajuste se realiza en Cloudflare R2, no dentro de esta aplicación.
+
 ## Migrar PDF a R2
 
 Las migraciones son incrementales: cada PDF se descarga a un archivo temporal, se valida, se carga en `V1/` o `V2/` y se elimina localmente antes de continuar.
@@ -41,10 +60,12 @@ Para transmisión (V1), el script corrige el segmento de zona y agrega un `uuid`
 ```bash
 ./scripts/migrate-v1-to-r2.sh --id 010100117096
 ./scripts/migrate-v1-to-r2.sh --limit 100
-./scripts/migrate-v1-to-r2.sh --limit 1000 --jobs 8
-./scripts/migrate-v1-to-r2.sh --municipality 01001 --jobs 12
+./scripts/migrate-v1-to-r2.sh --limit 1000 --jobs 2
+./scripts/migrate-v1-to-r2.sh --municipality 01001 --jobs 4
 ./scripts/migrate-v1-to-r2.sh
 ```
+
+V1 ejecuta una descarga de prueba antes de modificar R2 o Neon y admite como máximo ocho workers. Si Akamai exige una sesión de navegador, exporta manualmente cookies en formato Netscape y usa `--cookie-file /ruta/cookies.txt`. No guardes cookies en el repositorio.
 
 Para claveros (V2):
 
@@ -57,4 +78,4 @@ Para claveros (V2):
 ./scripts/migrate-v2-to-r2.sh
 ```
 
-El script usa `DATABASE_URL` y `CLOUDFLARE_API_TOKEN` desde `.env.local`. Procesa ocho documentos en paralelo por defecto, acepta `--jobs` para ajustar la concurrencia y reporta tiempo/velocidad cada 100 documentos. La aplicación usa además `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY` para generar descargas privadas temporales.
+Los scripts usan `DATABASE_URL` y `CLOUDFLARE_API_TOKEN` desde `.env.local`, aceptan `--jobs` para ajustar la concurrencia y reportan progreso por lotes. La aplicación usa además `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY` para generar descargas privadas temporales.

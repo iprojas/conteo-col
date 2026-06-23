@@ -10,15 +10,22 @@ TRANSMISSION_HOST="e14segundavueltapresidentet.registraduria.gov.co"
 LIMIT=""
 ACT_ID=""
 MUNICIPALITY_ID=""
-JOBS="${JOBS:-8}"
+JOBS="${JOBS:-2}"
+MAX_JOBS=8
+DOWNLOAD_TIMEOUT="${DOWNLOAD_TIMEOUT:-30}"
+DOWNLOAD_RETRIES="${DOWNLOAD_RETRIES:-1}"
+COOKIE_FILE="${V1_COOKIE_FILE:-}"
+SKIP_PREFLIGHT=0
+PREFLIGHT_ONLY=0
 BATCH_SIZE=400
 
 usage() {
   cat <<'EOF'
-Uso: scripts/migrate-v1-to-r2.sh [--id ID_ACTA] [--municipality CODIGO] [--limit CANTIDAD] [--jobs CANTIDAD]
+Uso: scripts/migrate-v1-to-r2.sh [--id ID_ACTA] [--municipality CODIGO] [--limit CANTIDAD] [--jobs 1-8] [--cookie-file ARCHIVO] [--preflight-only] [--skip-preflight]
 
 Corrige la ruta de los PDF v1, los descarga, los sube a R2 y actualiza Neon.
-Procesa 8 documentos en paralelo por defecto y muestra progreso por lote.
+Procesa 2 documentos en paralelo por defecto y rechaza más de 8 para no bloquear Akamai.
+Antes de migrar valida una descarga sin modificar R2 ni Neon.
 Sin opciones procesa todas las actas v1 aún no migradas.
 EOF
 }
@@ -37,6 +44,13 @@ while (($#)); do
     --jobs)
       [[ $# -ge 2 ]] || { echo "Falta el valor de --jobs" >&2; exit 2; }
       JOBS="$2"; shift 2 ;;
+    --cookie-file)
+      [[ $# -ge 2 ]] || { echo "Falta el valor de --cookie-file" >&2; exit 2; }
+      COOKIE_FILE="$2"; shift 2 ;;
+    --skip-preflight)
+      SKIP_PREFLIGHT=1; shift ;;
+    --preflight-only)
+      PREFLIGHT_ONLY=1; shift ;;
     -h|--help)
       usage; exit 0 ;;
     *)
@@ -48,6 +62,11 @@ done
 [[ -z "$MUNICIPALITY_ID" || "$MUNICIPALITY_ID" =~ ^[0-9]{5}$ ]] || { echo "El código de municipio debe tener cinco dígitos." >&2; exit 2; }
 [[ -z "$LIMIT" || "$LIMIT" =~ ^[1-9][0-9]*$ ]] || { echo "El límite debe ser un entero positivo." >&2; exit 2; }
 [[ "$JOBS" =~ ^[1-9][0-9]*$ ]] || { echo "La cantidad de procesos debe ser un entero positivo." >&2; exit 2; }
+((JOBS <= MAX_JOBS)) || { echo "--jobs no puede superar $MAX_JOBS; usa 2 y aumenta gradualmente." >&2; exit 2; }
+[[ "$DOWNLOAD_TIMEOUT" =~ ^[1-9][0-9]*$ ]] || { echo "DOWNLOAD_TIMEOUT debe ser un entero positivo." >&2; exit 2; }
+[[ "$DOWNLOAD_RETRIES" =~ ^[0-9]+$ ]] || { echo "DOWNLOAD_RETRIES debe ser un entero no negativo." >&2; exit 2; }
+[[ -z "$COOKIE_FILE" || -f "$COOKIE_FILE" ]] || { echo "No existe el archivo de cookies: $COOKIE_FILE" >&2; exit 2; }
+((SKIP_PREFLIGHT == 0 || PREFLIGHT_ONLY == 0)) || { echo "No combines --skip-preflight con --preflight-only." >&2; exit 2; }
 [[ -f "$ENV_FILE" ]] || { echo "No existe $ENV_FILE" >&2; exit 1; }
 
 set -a
@@ -55,7 +74,7 @@ set -a
 source "$ENV_FILE"
 set +a
 
-for command in curl jq psql mktemp xargs find head date; do
+for command in curl jq psql mktemp xargs find head uuidgen; do
   command -v "$command" >/dev/null || { echo "Falta el comando requerido: $command" >&2; exit 1; }
 done
 
@@ -81,7 +100,13 @@ cleanup() {
   rm -f -- "$rows_file"
   rm -rf -- "$result_root"
 }
-trap cleanup EXIT INT TERM
+handle_signal() {
+  trap - EXIT
+  cleanup
+  exit 130
+}
+trap cleanup EXIT
+trap handle_signal INT TERM
 
 if ! psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -qAt -F $'\t' -c "$query" > "$rows_file"; then
   echo "No se pudieron consultar las actas en Neon." >&2
@@ -118,14 +143,22 @@ download_pdf() {
   local url="$1"
   local output="$2"
   local separator="?"
+  local -a cookie_args=()
   [[ "$url" == *\?* ]] && separator="&"
-  curl --fail --location --silent --show-error --http1.1 \
-    --retry 3 --retry-all-errors --connect-timeout 20 --max-time 180 \
+  [[ -z "$COOKIE_FILE" ]] || cookie_args=(--cookie "$COOKIE_FILE")
+  curl --fail --location --silent --http1.1 --ipv4 \
+    --retry "$DOWNLOAD_RETRIES" --retry-all-errors --retry-delay 2 \
+    --connect-timeout 8 --max-time "$DOWNLOAD_TIMEOUT" \
     --header 'Accept: application/pdf,application/octet-stream;q=0.9,*/*;q=0.8' \
+    --header 'Accept-Language: es-CO,es;q=0.9,en;q=0.8' \
     --header 'Cache-Control: no-cache' \
+    --header 'Sec-Fetch-Dest: document' \
+    --header 'Sec-Fetch-Mode: navigate' \
+    --header 'Sec-Fetch-Site: same-origin' \
     --header "Referer: https://${TRANSMISSION_HOST}/" \
-    --user-agent 'Mozilla/5.0 (compatible; ConteoCivicoMigration/1.0)' \
-    --output "$output" "${url}${separator}uuid=$(date +%s%3N)"
+    --user-agent 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36' \
+    "${cookie_args[@]}" \
+    --output "$output" "${url}${separator}uuid=$(uuidgen)"
 }
 
 is_pdf() {
@@ -142,6 +175,7 @@ process_one() {
   target="r2://$BUCKET/$key"
   current_file="$(mktemp --suffix=.pdf)"
   upload_response="$(mktemp)"
+  sleep "$((RANDOM % 3))"
 
   if ! corrected_url="$(correct_source_url "$source_url" "$zone")"; then
     echo "$id: URL v1 no reconocida" >&2
@@ -192,7 +226,36 @@ process_one() {
 }
 
 export BUCKET API_BASE DATABASE_URL CLOUDFLARE_API_TOKEN TRANSMISSION_HOST BATCH_RESULT_DIR
+export COOKIE_FILE DOWNLOAD_TIMEOUT DOWNLOAD_RETRIES
 export -f correct_source_url download_pdf is_pdf process_one
+
+run_preflight() {
+  local id zone source_url corrected_url test_file
+  IFS=$'\t' read -r id zone source_url < "$rows_file"
+  corrected_url="$(correct_source_url "$source_url" "$zone")" || {
+    echo "Preflight: URL v1 no reconocida para $id." >&2
+    return 1
+  }
+  test_file="$(mktemp --suffix=.pdf)"
+  echo "Preflight: probando una descarga para $id..."
+  if download_pdf "$corrected_url" "$test_file" && is_pdf "$test_file"; then
+    rm -f -- "$test_file"
+    echo "Preflight correcto. Iniciando migración con $JOBS workers."
+    return 0
+  fi
+  rm -f -- "$test_file"
+  echo "Preflight falló: Registraduría no entregó un PDF." >&2
+  echo "No se modificó R2 ni Neon. Espera el desbloqueo de Akamai o usa --cookie-file con cookies Netscape exportadas manualmente." >&2
+  return 1
+}
+
+if ((SKIP_PREFLIGHT == 0)); then
+  run_preflight || exit 1
+fi
+if ((PREFLIGHT_ONLY == 1)); then
+  echo "Preflight-only completado; no se modificó R2 ni Neon."
+  exit 0
+fi
 
 processed=0
 successful=0

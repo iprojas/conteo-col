@@ -6,6 +6,7 @@ import {
   TRANSMISSION_PDF_HOST,
   validPdfRequestId,
 } from "@/lib/pdf-source";
+import { SITE_URL } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -16,7 +17,7 @@ const TRANSMISSION_HEADERS = {
   "cache-control": "no-cache",
   pragma: "no-cache",
   referer: `https://${TRANSMISSION_PDF_HOST}/`,
-  "user-agent": "Mozilla/5.0 (compatible; ConteoCivico/1.0; +https://conteo-col.vercel.app)",
+  "user-agent": `Mozilla/5.0 (compatible; ConteoCivico/1.0; +${SITE_URL.origin})`,
 };
 const FORWARDED_RESPONSE_HEADERS = [
   "accept-ranges",
