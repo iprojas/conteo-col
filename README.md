@@ -54,7 +54,7 @@ temporales de R2.
 
 Las migraciones son incrementales: cada PDF se descarga a un archivo temporal, se valida, se carga en `V1/` o `V2/` y se elimina localmente antes de continuar.
 
-Para transmisión (V1), el script valida la ruta original y agrega un `uuid` temporal antes de descargar:
+Para transmisión (V1), el script corrige el segmento de zona antes de descargar:
 
 ```bash
 ./scripts/migrate-v1-to-r2.sh --id 010100117096

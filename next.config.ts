@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: "/pdf-source/v1/:path*",
+        destination: "https://e14segundavueltapresidentet.registraduria.gov.co/:path*",
+      },
+      {
         source: "/pdf-source/v2/:path*",
         destination: "https://escrutinios2vueltapresidente2026.registraduria.gov.co/:path*",
       },

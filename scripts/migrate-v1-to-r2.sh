@@ -23,7 +23,7 @@ usage() {
   cat <<'EOF'
 Uso: scripts/migrate-v1-to-r2.sh [--id ID_ACTA] [--municipality CODIGO] [--limit CANTIDAD] [--jobs 1-8] [--cookie-file ARCHIVO] [--preflight-only] [--skip-preflight]
 
-Valida la ruta de los PDF v1, los descarga, los sube a R2 y actualiza Neon.
+Corrige la ruta de los PDF v1, los descarga, los sube a R2 y actualiza Neon.
 Procesa 2 documentos en paralelo por defecto y rechaza más de 8 para no bloquear Akamai.
 Antes de migrar valida una descarga sin modificar R2 ni Neon.
 Sin opciones procesa todas las actas v1 aún no migradas.
@@ -74,7 +74,7 @@ set -a
 source "$ENV_FILE"
 set +a
 
-for command in curl jq psql mktemp xargs find head uuidgen; do
+for command in curl jq psql mktemp xargs find head; do
   command -v "$command" >/dev/null || { echo "Falta el comando requerido: $command" >&2; exit 1; }
 done
 
@@ -126,12 +126,14 @@ format_duration() {
 
 correct_source_url() {
   local source_url="$1"
-  local prefix remainder
+  local zone="$2"
+  local padded_zone prefix remainder
+  printf -v padded_zone '%03d' "$((10#$zone))"
   prefix="https://${TRANSMISSION_HOST}/assets/temis/pdf/"
   [[ "$source_url" == "$prefix"* ]] || return 1
   remainder="${source_url#"$prefix"}"
-  if [[ "$remainder" =~ ^[0-9]{2}/[0-9]{3}/[0-9]{3}/[0-9]{2}/[0-9]{3}/PRE/[^/]+\.pdf$ ]]; then
-    printf '%s' "$source_url"
+  if [[ "$remainder" =~ ^([0-9]{2}/[0-9]{3}/)[0-9]{3}(/.*)$ ]]; then
+    printf '%s%s%s%s' "$prefix" "${BASH_REMATCH[1]}" "$padded_zone" "${BASH_REMATCH[2]}"
     return 0
   fi
   return 1
@@ -140,9 +142,7 @@ correct_source_url() {
 download_pdf() {
   local url="$1"
   local output="$2"
-  local separator="?"
   local -a cookie_args=()
-  [[ "$url" == *\?* ]] && separator="&"
   [[ -z "$COOKIE_FILE" ]] || cookie_args=(--cookie "$COOKIE_FILE")
   curl --fail --location --silent --http1.1 --ipv4 \
     --retry "$DOWNLOAD_RETRIES" --retry-all-errors --retry-delay 2 \
@@ -156,7 +156,7 @@ download_pdf() {
     --header "Referer: https://${TRANSMISSION_HOST}/" \
     --user-agent 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36' \
     "${cookie_args[@]}" \
-    --output "$output" "${url}${separator}uuid=$(uuidgen)"
+    --output "$output" "$url"
 }
 
 is_pdf() {

@@ -1,31 +1,9 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getPdfSource } from "@/lib/db";
-import {
-  buildTransmissionPdfUrl,
-  TRANSMISSION_PDF_HOST,
-  validPdfRequestId,
-} from "@/lib/pdf-source";
-import { SITE_URL } from "@/lib/site";
+import { buildTransmissionPdfUrl } from "@/lib/pdf-source";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
-
-const TRANSMISSION_TIMEOUT_MS = 12_000;
-const TRANSMISSION_HEADERS = {
-  accept: "application/pdf,application/octet-stream;q=0.9,*/*;q=0.8",
-  "cache-control": "no-cache",
-  pragma: "no-cache",
-  referer: `https://${TRANSMISSION_PDF_HOST}/`,
-  "user-agent": `Mozilla/5.0 (compatible; ConteoCivico/1.0; +${SITE_URL.origin})`,
-};
-const FORWARDED_RESPONSE_HEADERS = [
-  "accept-ranges",
-  "content-length",
-  "content-range",
-  "content-type",
-  "etag",
-  "last-modified",
-] as const;
 
 function r2Client() {
   const endpoint = process.env.R2_ENDPOINT;
@@ -39,56 +17,6 @@ function r2Client() {
     endpoint,
     forcePathStyle: true,
     credentials: { accessKeyId, secretAccessKey },
-  });
-}
-
-async function fetchTransmissionPdf(url: URL, range: string | null) {
-  const headers = new Headers(TRANSMISSION_HEADERS);
-  if (range) headers.set("range", range);
-  return fetch(url, {
-    cache: "no-store",
-    headers,
-    redirect: "follow",
-    signal: AbortSignal.timeout(TRANSMISSION_TIMEOUT_MS),
-  });
-}
-
-function transmissionResponse(upstream: Response, id: string) {
-  const headers = new Headers({
-    "cache-control": "private, no-store",
-    "content-disposition": `inline; filename="${id}-v1.pdf"`,
-    "x-pdf-source": "stored",
-  });
-  for (const name of FORWARDED_RESPONSE_HEADERS) {
-    const value = upstream.headers.get(name);
-    if (value) headers.set(name, value);
-  }
-  if (!headers.has("content-type")) headers.set("content-type", "application/pdf");
-  return new Response(upstream.body, { status: upstream.status, headers });
-}
-
-async function proxyTransmissionPdf(request: Request, id: string, storedUrl: string) {
-  const requestUrl = new URL(request.url);
-  const requestId = validPdfRequestId(requestUrl.searchParams.get("uuid"));
-  let source: URL;
-  try {
-    source = buildTransmissionPdfUrl(storedUrl, requestId);
-  } catch {
-    return new Response("Referencia de transmisión inválida", { status: 400 });
-  }
-
-  try {
-    const upstream = await fetchTransmissionPdf(source, request.headers.get("range"));
-    if (upstream.ok) return transmissionResponse(upstream, id);
-    console.warn(`[pdf-v1] ${id} respondió HTTP ${upstream.status} en ${source.pathname}`);
-    await upstream.body?.cancel();
-  } catch (error) {
-    const reason = error instanceof Error ? error.name : "UnknownError";
-    console.warn(`[pdf-v1] ${id} falló con ${reason} en ${source.pathname}`);
-  }
-  return new Response("No se pudo obtener el formulario de transmisión", {
-    status: 502,
-    headers: { "cache-control": "private, no-store" },
   });
 }
 
@@ -142,7 +70,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return proxyR2Pdf(request, id, version, bucket, key);
   }
 
-  if (version === "v1") return proxyTransmissionPdf(request, id, pdf.url);
+  if (version === "v1") {
+    try {
+      const source = buildTransmissionPdfUrl(pdf.url, pdf.zone);
+      const proxyUrl = new URL(`/pdf-source/v1${source.pathname}`, request.url);
+      return Response.redirect(proxyUrl, 307);
+    } catch {
+      return new Response("Referencia de transmisión inválida", { status: 400 });
+    }
+  }
 
   const source = new URL(pdf.url);
   if (source.hostname !== "escrutinios2vueltapresidente2026.registraduria.gov.co") {

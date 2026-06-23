@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ReviewWorkspace } from "@/components/review-workspace";
 import { getAct, getNextPendingActId, getPriorityPendingActId } from "@/lib/db";
-import { validPdfRequestId } from "@/lib/pdf-source";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +15,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
 
   return (
     <main className="review-page">
-      <ReviewWorkspace act={act} documentRequestId={validPdfRequestId(null)} />
+      <ReviewWorkspace act={act} />
     </main>
   );
 }
