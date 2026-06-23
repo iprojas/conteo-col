@@ -34,11 +34,11 @@ Los PDF se sirven mediante `/api/pdf/:id/:version` porque las fuentes originales
 
 ## Dominio y despliegue
 
-El dominio canónico de producción es `https://conteocol.com`. `SITE_URL` permite
+El dominio canónico de producción es `https://www.conteocol.com`. `SITE_URL` permite
 declararlo explícitamente en el entorno de despliegue y usa ese dominio como valor
-predeterminado. Las visitas al dominio anterior `conteo-col.vercel.app` y a
-`www.conteocol.com` se redirigen permanentemente al dominio canónico conservando
-la ruta.
+predeterminado. Las visitas al dominio anterior `conteo-col.vercel.app` se
+redirigen permanentemente al dominio canónico conservando la ruta. Vercel redirige
+el dominio raíz `conteocol.com` a `www`.
 
 El dominio debe apuntar por DNS al proveedor donde se ejecute Next.js. Si la
 aplicación continúa en Vercel, agrega `conteocol.com` y `www.conteocol.com` al
@@ -46,16 +46,15 @@ proyecto y configura los registros DNS indicados por Vercel. En otro proveedor,
 ejecuta `npm run build` y `npm start` con Node.js 22 o superior y configura todas
 las variables de `.env.example`.
 
-Los PDF almacenados en R2 se abren mediante URLs temporales desde el navegador.
-La política CORS del bucket debe permitir `GET` y `HEAD` desde
-`https://conteocol.com` (y desde `http://localhost:3000` para desarrollo). Este
-ajuste se realiza en Cloudflare R2, no dentro de esta aplicación.
+Los PDF almacenados en R2 se transmiten mediante `/api/pdf/:id/:version`, por lo
+que el navegador no depende de la política CORS del bucket ni expone URLs
+temporales de R2.
 
 ## Migrar PDF a R2
 
 Las migraciones son incrementales: cada PDF se descarga a un archivo temporal, se valida, se carga en `V1/` o `V2/` y se elimina localmente antes de continuar.
 
-Para transmisión (V1), el script corrige el segmento de zona y agrega un `uuid` temporal antes de descargar:
+Para transmisión (V1), el script valida la ruta original y agrega un `uuid` temporal antes de descargar:
 
 ```bash
 ./scripts/migrate-v1-to-r2.sh --id 010100117096

@@ -9,13 +9,7 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         has: [{ type: "host", value: "conteo-col.vercel.app" }],
-        destination: "https://conteocol.com/:path*",
-        permanent: true,
-      },
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "www.conteocol.com" }],
-        destination: "https://conteocol.com/:path*",
+        destination: "https://www.conteocol.com/:path*",
         permanent: true,
       },
     ];

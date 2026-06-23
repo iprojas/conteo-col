@@ -23,7 +23,7 @@ usage() {
   cat <<'EOF'
 Uso: scripts/migrate-v1-to-r2.sh [--id ID_ACTA] [--municipality CODIGO] [--limit CANTIDAD] [--jobs 1-8] [--cookie-file ARCHIVO] [--preflight-only] [--skip-preflight]
 
-Corrige la ruta de los PDF v1, los descarga, los sube a R2 y actualiza Neon.
+Valida la ruta de los PDF v1, los descarga, los sube a R2 y actualiza Neon.
 Procesa 2 documentos en paralelo por defecto y rechaza más de 8 para no bloquear Akamai.
 Antes de migrar valida una descarga sin modificar R2 ni Neon.
 Sin opciones procesa todas las actas v1 aún no migradas.
@@ -126,14 +126,12 @@ format_duration() {
 
 correct_source_url() {
   local source_url="$1"
-  local zone="$2"
-  local padded_zone prefix remainder
-  printf -v padded_zone '%03d' "$((10#$zone))"
+  local prefix remainder
   prefix="https://${TRANSMISSION_HOST}/assets/temis/pdf/"
   [[ "$source_url" == "$prefix"* ]] || return 1
   remainder="${source_url#"$prefix"}"
-  if [[ "$remainder" =~ ^([0-9]{2}/[0-9]{3}/)[0-9]{3}(/.*)$ ]]; then
-    printf '%s%s%s%s' "$prefix" "${BASH_REMATCH[1]}" "$padded_zone" "${BASH_REMATCH[2]}"
+  if [[ "$remainder" =~ ^[0-9]{2}/[0-9]{3}/[0-9]{3}/[0-9]{2}/[0-9]{3}/PRE/[^/]+\.pdf$ ]]; then
+    printf '%s' "$source_url"
     return 0
   fi
   return 1

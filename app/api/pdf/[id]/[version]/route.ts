@@ -1,5 +1,4 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getPdfSource } from "@/lib/db";
 import {
   buildTransmissionPdfUrl,
@@ -54,11 +53,11 @@ async function fetchTransmissionPdf(url: URL, range: string | null) {
   });
 }
 
-function transmissionResponse(upstream: Response, id: string, source: "corrected" | "stored") {
+function transmissionResponse(upstream: Response, id: string) {
   const headers = new Headers({
     "cache-control": "private, no-store",
     "content-disposition": `inline; filename="${id}-v1.pdf"`,
-    "x-pdf-source": source,
+    "x-pdf-source": "stored",
   });
   for (const name of FORWARDED_RESPONSE_HEADERS) {
     const value = upstream.headers.get(name);
@@ -68,42 +67,62 @@ function transmissionResponse(upstream: Response, id: string, source: "corrected
   return new Response(upstream.body, { status: upstream.status, headers });
 }
 
-async function proxyTransmissionPdf(request: Request, id: string, storedUrl: string, zone: string) {
+async function proxyTransmissionPdf(request: Request, id: string, storedUrl: string) {
   const requestUrl = new URL(request.url);
   const requestId = validPdfRequestId(requestUrl.searchParams.get("uuid"));
-  let corrected: URL;
-  let stored: URL;
+  let source: URL;
   try {
-    corrected = buildTransmissionPdfUrl(storedUrl, zone, requestId);
-    stored = new URL(storedUrl);
-    if (stored.hostname !== TRANSMISSION_PDF_HOST) throw new Error("Origen inválido");
-    stored.search = "";
-    stored.searchParams.set("uuid", requestId);
+    source = buildTransmissionPdfUrl(storedUrl, requestId);
   } catch {
     return new Response("Referencia de transmisión inválida", { status: 400 });
   }
 
-  const candidates: Array<{ url: URL; source: "corrected" | "stored" }> = [
-    { url: corrected, source: "corrected" },
-  ];
-  if (stored.pathname !== corrected.pathname) candidates.push({ url: stored, source: "stored" });
-
-  for (const candidate of candidates) {
-    try {
-      const upstream = await fetchTransmissionPdf(candidate.url, request.headers.get("range"));
-      if (upstream.ok) return transmissionResponse(upstream, id, candidate.source);
-      console.warn(`[pdf-v1] ${id} ${candidate.source} respondió HTTP ${upstream.status} en ${candidate.url.pathname}`);
-      await upstream.body?.cancel();
-    } catch (error) {
-      const reason = error instanceof Error ? error.name : "UnknownError";
-      console.warn(`[pdf-v1] ${id} ${candidate.source} falló con ${reason} en ${candidate.url.pathname}`);
-      // Try the legacy stored path before returning a stable proxy error.
-    }
+  try {
+    const upstream = await fetchTransmissionPdf(source, request.headers.get("range"));
+    if (upstream.ok) return transmissionResponse(upstream, id);
+    console.warn(`[pdf-v1] ${id} respondió HTTP ${upstream.status} en ${source.pathname}`);
+    await upstream.body?.cancel();
+  } catch (error) {
+    const reason = error instanceof Error ? error.name : "UnknownError";
+    console.warn(`[pdf-v1] ${id} falló con ${reason} en ${source.pathname}`);
   }
   return new Response("No se pudo obtener el formulario de transmisión", {
     status: 502,
     headers: { "cache-control": "private, no-store" },
   });
+}
+
+async function proxyR2Pdf(request: Request, id: string, version: "v1" | "v2", bucket: string, key: string) {
+  try {
+    const object = await r2Client().send(new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Range: request.headers.get("range") ?? undefined,
+      ResponseContentType: "application/pdf",
+      ResponseContentDisposition: `inline; filename="${id}-${version}.pdf"`,
+    }));
+    if (!object.Body) throw new Error("R2 devolvió un objeto sin contenido");
+
+    const headers = new Headers({
+      "accept-ranges": object.AcceptRanges ?? "bytes",
+      "cache-control": object.CacheControl ?? "private, max-age=3600",
+      "content-disposition": object.ContentDisposition ?? `inline; filename="${id}-${version}.pdf"`,
+      "content-type": object.ContentType ?? "application/pdf",
+    });
+    if (object.ContentLength !== undefined) headers.set("content-length", object.ContentLength.toString());
+    if (object.ContentRange) headers.set("content-range", object.ContentRange);
+    if (object.ETag) headers.set("etag", object.ETag);
+    if (object.LastModified) headers.set("last-modified", object.LastModified.toUTCString());
+
+    return new Response(object.Body.transformToWebStream(), {
+      status: object.ContentRange ? 206 : 200,
+      headers,
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.name : "UnknownError";
+    console.warn(`[pdf-r2] ${id} ${version} falló con ${reason}`);
+    return new Response("No se pudo obtener el PDF almacenado", { status: 502 });
+  }
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; version: string }> }) {
@@ -120,27 +139,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (reference.hostname !== bucket || !key.startsWith(expectedPrefix)) {
       return new Response("Referencia R2 inválida", { status: 400 });
     }
-    try {
-      const signedUrl = await getSignedUrl(
-        r2Client(),
-        new GetObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          ResponseContentType: "application/pdf",
-          ResponseContentDisposition: `inline; filename="${id}-${version}.pdf"`,
-        }),
-        { expiresIn: 900 },
-      );
-      return new Response(null, {
-        status: 307,
-        headers: { location: signedUrl, "cache-control": "private, no-store" },
-      });
-    } catch {
-      return new Response("No se pudo autorizar el PDF", { status: 502 });
-    }
+    return proxyR2Pdf(request, id, version, bucket, key);
   }
 
-  if (version === "v1") return proxyTransmissionPdf(request, id, pdf.url, pdf.zone);
+  if (version === "v1") return proxyTransmissionPdf(request, id, pdf.url);
 
   const source = new URL(pdf.url);
   if (source.hostname !== "escrutinios2vueltapresidente2026.registraduria.gov.co") {
